@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Quiz</title>
+    <style>
+        body {
+            position: relative;
+            min-height: 100vh;
+            min-height: 100vh; 
+            padding-bottom: 60px;
+        }
+
+        footer {
+            position: relative;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            text-align: center;
+            padding: 10px 0;
+            background-color: #a8a6a6;
+        }
+
+        .high-score {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            font-size: 18px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="high-score">
+        Best Score: {{ session.get('percentage', 0) }}%
+    </div>
+
+    <h1>What is your name?</h1>
+    <form action="/quiz" method="POST">
+        <input type="text" name="username" placeholder="Enter your name" required>
+
+    <h1>Take the Quiz</h1>
+        {% for question in questions %}
+        <div>
+            <p>{{ question.question }}</p>
+            <label>
+                <input type="radio" name="question-{{ question.id }}" value="1">
+                {{ question.option1 }}
+            </label>
+            <label>
+                <input type="radio" name="question-{{ question.id }}" value="2">
+                {{ question.option2 }}
+            </label>
+            <label>
+                <input type="radio" name="question-{{ question.id }}" value="3">
+                {{ question.option3 }}
+            </label>
+            <label>
+                <input type="radio" name="question-{{ question.id }}" value="4">
+                {{ question.option4 }}
+            </label>
+        </div>
+        {% endfor %}
+        <button type="submit">Submit</button>
+    </form>
+    <footer>
+        <p>Created by: Şevval Mertoğlu | <a href="https://www.linkedin.com/in/sevvalmertoglu8/">LinkedIn</a></p>
+    </footer>
+</body>
+</html>

@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, session 
+from flask import Flask, render_template, request, redirect, url_for, session
 import sqlite3
 
 app = Flask(__name__)
@@ -16,7 +16,7 @@ def home():
 @app.route('/quiz', methods=['GET', 'POST'])
 def quiz():
     if request.method == 'POST':
-        username = request.form['username'] 
+        username = request.form['username']
         
         with get_db_connection() as conn:
             cursor = conn.cursor()
@@ -24,9 +24,14 @@ def quiz():
             existing_user = cursor.execute('SELECT * FROM users WHERE username = ?', (username,)).fetchone()
             
             if existing_user:
-                current_high_score = existing_user["high_score"]
+                user_id = existing_user["id"]
+                current_high_score = cursor.execute(
+                    'SELECT high_score FROM high_scores WHERE user_id = ?', (user_id,)
+                ).fetchone()["high_score"]
             else:
-                cursor.execute('INSERT INTO users (username, high_score) VALUES (?, ?)', (username, 0))
+                cursor.execute('INSERT INTO users (username) VALUES (?)', (username,))
+                user_id = cursor.lastrowid
+                cursor.execute('INSERT INTO high_scores (user_id, high_score) VALUES (?, ?)', (user_id, 0))
                 conn.commit()
                 current_high_score = 0
         
@@ -45,13 +50,22 @@ def quiz():
         with get_db_connection() as conn:
             cursor = conn.cursor()
             if score > current_high_score:
-                cursor.execute('UPDATE users SET high_score = ? WHERE username = ?', (score, username))
+                cursor.execute(
+                    'UPDATE high_scores SET high_score = ? WHERE user_id = ?', (score, user_id)
+                )
                 conn.commit()
+                current_high_score = score  
+        
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute('SELECT MAX(high_score) as max_score FROM high_scores')
+            global_high_score = cursor.fetchone()["max_score"]
+            global_high_score_percentage = (global_high_score / total_questions) * 100
         
         session['score'] = score
         session['percentage'] = percentage 
-        if 'high_score' not in session or score > session['high_score']:
-            session['high_score'] = score
+        session['high_score'] = current_high_score 
+        session['global_high_score'] = global_high_score_percentage  
         
         return redirect(url_for('result'))
 
@@ -61,9 +75,23 @@ def quiz():
 
 @app.route('/result')
 def result():
-    score = session.get('score', 0)
-    high_score = session.get('high_score', 0)
-    return render_template('result.html', score=score, high_score=high_score)
+    score = session.get('score', 0)  
+    high_score = session.get('high_score', 0)  
+    global_high_score = session.get('global_high_score', 0) 
+
+    with get_db_connection() as conn:
+        total_questions = conn.execute('SELECT COUNT(*) as count FROM questions').fetchone()["count"]
+
+    score_percentage = (score / total_questions) * 100
+    high_score_percentage = (high_score / total_questions) * 100
+    global_high_score_percentage = global_high_score  
+
+    return render_template(
+        'result.html',
+        score=score_percentage,
+        high_score=high_score_percentage,
+        global_high_score=global_high_score_percentage
+    )
 
 if __name__ == '__main__':
     app.run(debug=True)

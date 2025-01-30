@@ -31,7 +31,8 @@
 </head>
 <body>
     <div class="high-score">
-        Best Score: {{ session.get('percentage', 0) }}%
+        <p>Your Best Score: {{ (session.get('high_score', 0) / questions|length * 100) }}%</p>
+        <p>Global Best Score: {{ session.get('global_high_score', 0) }}%</p>
     </div>
 
     <h1>What is your name?</h1>
